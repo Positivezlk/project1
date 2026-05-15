@@ -1,0 +1,2 @@
+namespace CertDesk.Models;
+public sealed class TokenDevice { public int Id { get; set; } public string InventoryNumber { get; set; }=""; public string TokenType { get; set; }="Rutoken"; public string? Model { get; set; } public string? SerialNumber { get; set; } public string Status { get; set; }="storage"; public int? HolderId { get; set; } public DateTime? ReceivedAt { get; set; }=DateTime.Today; public string? Notes { get; set; } }

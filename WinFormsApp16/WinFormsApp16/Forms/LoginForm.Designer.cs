@@ -1,0 +1,2 @@
+namespace CertDesk.Forms;
+public partial class LoginForm { private System.ComponentModel.IContainer? components=null; protected override void Dispose(bool disposing){ if(disposing) components?.Dispose(); base.Dispose(disposing);} private void InitializeComponent(){ SuspendLayout(); AutoScaleDimensions=new SizeF(7F,15F); AutoScaleMode=AutoScaleMode.Font; ClientSize=new Size(430,330); Name="LoginForm"; StartPosition=FormStartPosition.CenterScreen; Text="CertDesk"; ResumeLayout(false);} }

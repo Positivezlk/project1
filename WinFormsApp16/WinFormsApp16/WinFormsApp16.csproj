@@ -1,11 +1,16 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>CertDesk</AssemblyName>
+    <RootNamespace>CertDesk</RootNamespace>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
-
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.0" />
+    <PackageReference Include="ClosedXML" Version="0.104.2" />
+  </ItemGroup>
 </Project>
