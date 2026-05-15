@@ -1,0 +1,131 @@
+using CertDesk.Common;
+using CertDesk.Forms;
+using CertDesk.Models;
+using CertDesk.Services;
+
+namespace CertDesk.Views;
+
+public partial class MchdView : UserControl
+{
+    private readonly CurrentUser u;
+    private readonly DataGridView grid = new();
+    private readonly TextBox q = new();
+    private readonly ComboBox st = new();
+    private readonly ComboBox reg = new();
+
+    public MchdView(CurrentUser user)
+    {
+        u = user;
+        InitializeComponent();
+        Build();
+        LoadData();
+    }
+
+    private int Id => grid.CurrentRow == null ? 0 : Convert.ToInt32(grid.CurrentRow.Cells["ID"].Value);
+
+    private void Build()
+    {
+        BackColor = UiTheme.Light;
+
+        q.SetBounds(15, 15, 160, 25);
+        st.SetBounds(185, 15, 110, 25);
+        reg.SetBounds(305, 15, 150, 25);
+        st.Items.AddRange(new object[] { "Все", "active", "warning", "expired", "revoked", "archived" });
+        reg.Items.AddRange(new object[] { "Все", "Зарегистрирована", "Не зарегистрирована" });
+        st.SelectedIndex = 0;
+        reg.SelectedIndex = 0;
+
+        Button add = B("Добавить");
+        Button edit = B("Изменить");
+        Button rev = B("Отозвать");
+        Button arc = B("Архивировать");
+        Button refb = B("Обновить");
+        Button exp = B("Экспорт");
+
+        Flow(465, add, edit, rev, arc, refb, exp);
+
+        grid.SetBounds(15, 60, 1000, 560);
+        grid.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
+        UiTheme.ApplyGridStyle(grid);
+
+        Controls.AddRange(new Control[] { q, st, reg, add, edit, rev, arc, refb, exp, grid });
+
+        q.TextChanged += (_, __) => LoadData();
+        st.SelectedIndexChanged += (_, __) => LoadData();
+        reg.SelectedIndexChanged += (_, __) => LoadData();
+        refb.Click += (_, __) => LoadData();
+        add.Click += (_, __) => Save(new MchdEditForm(), false);
+        edit.Click += (_, __) =>
+        {
+            Mchd? m = MchdService.GetById(Id);
+            if (m != null)
+                Save(new MchdEditForm(m), true);
+        };
+        rev.Click += (_, __) =>
+        {
+            if (Id > 0 && MessageHelper.Confirm("Отозвать МЧД?"))
+            {
+                MchdService.Revoke(Id, u);
+                LoadData();
+            }
+        };
+        arc.Click += (_, __) =>
+        {
+            if (Id > 0 && MessageHelper.Confirm("Архивировать МЧД?"))
+            {
+                MchdService.Archive(Id, u);
+                LoadData();
+            }
+        };
+        exp.Click += (_, __) => MessageHelper.Info("CSV создан:\n" + ReportService.ExportCsv("Реестр МЧД", DateTime.Today.AddYears(-1), DateTime.Today, u));
+
+        if (!RoleGuard.CanEdit(u))
+        {
+            add.Enabled = false;
+            edit.Enabled = false;
+            rev.Enabled = false;
+            arc.Enabled = false;
+            exp.Enabled = false;
+        }
+    }
+
+    private static Button B(string t)
+    {
+        Button b = new() { Text = t, Top = 13, Width = 100 };
+        UiTheme.ApplyButtonStyle(b);
+        return b;
+    }
+
+    private static void Flow(int x, params Button[] bs)
+    {
+        foreach (Button b in bs)
+        {
+            b.Left = x;
+            x += 108;
+        }
+    }
+
+    private void Save(MchdEditForm f, bool edit)
+    {
+        try
+        {
+            if (f.ShowDialog() == DialogResult.OK)
+            {
+                if (edit)
+                    MchdService.Update(f.Mchd, u);
+                else
+                    MchdService.Create(f.Mchd, u);
+                LoadData();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageHelper.Error("Не удалось сохранить. Проверьте уникальность номера МЧД. " + ex.Message);
+        }
+    }
+
+    private void LoadData()
+    {
+        grid.DataSource = MchdService.Search(q.Text, st.Text, reg.Text);
+    }
+}
