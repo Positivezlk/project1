@@ -1,88 +1,9 @@
-using CertDesk.Common;
-using CertDesk.Services;
-
+using CertDesk.Common; using CertDesk.Services;
 namespace CertDesk.Forms;
-
-public partial class LoginForm : Form
+public partial class LoginForm:Form
 {
-    private readonly TextBox txtLogin = new() { Width = 300 };
-    private readonly TextBox txtPassword = new() { Width = 300, UseSystemPasswordChar = true };
-
-    public LoginForm()
-    {
-        InitializeComponent();
-        Build();
-    }
-
-    private void Build()
-    {
-        UiTheme.ApplyFormStyle(this);
-        ClientSize = new Size(460, 420);
-        MinimumSize = new Size(460, 420);
-        MaximumSize = new Size(460, 420);
-        BackColor = UiTheme.Light;
-
-        Panel card = new() { Left = 40, Top = 34, Width = 380, Height = 340 };
-        UiTheme.ApplyCardStyle(card);
-
-        Label title = new() { Text = "CertDesk", Left = 0, Top = 22, Width = card.Width, TextAlign = ContentAlignment.MiddleCenter, Font = new Font("Segoe UI", 24F, FontStyle.Bold), ForeColor = UiTheme.Primary };
-        Label subtitle = new() { Text = "Контроль сертификатов ЭП и МЧД", Left = 0, Top = 66, Width = card.Width, TextAlign = ContentAlignment.MiddleCenter, ForeColor = UiTheme.Secondary, Font = new Font("Segoe UI", 10F) };
-
-        Label loginLabel = new() { Text = "Логин", Left = 38, Top = 112, AutoSize = true };
-        Label passwordLabel = new() { Text = "Пароль", Left = 38, Top = 168, AutoSize = true };
-        txtLogin.Left = 38;
-        txtLogin.Top = 132;
-        txtPassword.Left = 38;
-        txtPassword.Top = 188;
-        UiTheme.ApplyTextBoxStyle(txtLogin);
-        UiTheme.ApplyTextBoxStyle(txtPassword);
-
-        Button signInButton = new() { Text = "Войти", Left = 38, Top = 238, Width = 142 };
-        Button exitButton = new() { Text = "Выход", Left = 196, Top = 238, Width = 142 };
-        UiTheme.ApplyButtonStyle(signInButton);
-        UiTheme.ApplySecondaryButtonStyle(exitButton);
-
-        Label hint = new()
-        {
-            Text = "Тестовые пользователи:\nadmin/admin123   spec/spec123   view/view123",
-            Left = 38,
-            Top = 292,
-            Width = 310,
-            Height = 38,
-            ForeColor = UiTheme.Secondary,
-            Font = new Font("Segoe UI", 8.5F),
-            TextAlign = ContentAlignment.MiddleCenter
-        };
-
-        card.Controls.AddRange(new Control[] { title, subtitle, loginLabel, txtLogin, passwordLabel, txtPassword, signInButton, exitButton, hint });
-        Controls.Add(card);
-
-        signInButton.Click += (_, _) => DoLogin();
-        exitButton.Click += (_, _) => Close();
-        AcceptButton = signInButton;
-    }
-
-    private void DoLogin()
-    {
-        try
-        {
-            var user = AuthService.Login(txtLogin.Text, txtPassword.Text);
-            if (user == null)
-            {
-                MessageHelper.Error("Неверный логин или пароль");
-                return;
-            }
-
-            AuditService.Write(user, "login", "users", user.Id, "Вход в систему");
-            Hide();
-            using MainForm mainForm = new(user);
-            mainForm.ShowDialog();
-            Show();
-            txtPassword.Clear();
-        }
-        catch (Exception ex)
-        {
-            MessageHelper.Error("Ошибка входа: " + ex.Message);
-        }
-    }
+ TextBox txtLogin=new(){Width=240}; TextBox txtPassword=new(){Width=240,UseSystemPasswordChar=true};
+ public LoginForm(){ InitializeComponent(); Build(); }
+ void Build(){ BackColor=UiTheme.Light; var title=new Label{Text="CertDesk",Font=new Font("Segoe UI",22,FontStyle.Bold),ForeColor=UiTheme.Primary,AutoSize=true,Left=145,Top=25}; var sub=new Label{Text="Контроль сертификатов ЭП и МЧД",AutoSize=true,Left=95,Top=72,ForeColor=UiTheme.Secondary}; var p=new Panel{Left=55,Top=110,Width=320,Height=170,BackColor=Color.White}; UiTheme.ApplyPanelStyle(p); p.Controls.AddRange(new Control[]{new Label{Text="Логин",Left=25,Top=20,AutoSize=true},txtLogin,new Label{Text="Пароль",Left=25,Top=75,AutoSize=true},txtPassword}); txtLogin.Left=25;txtLogin.Top=40; txtPassword.Left=25;txtPassword.Top=95; var b=new Button{Text="Войти",Left=25,Top=130,Width=115}; var ex=new Button{Text="Выход",Left=150,Top=130,Width=115}; UiTheme.ApplyButtonStyle(b); UiTheme.ApplyDangerButtonStyle(ex); p.Controls.AddRange(new Control[]{b,ex}); var hint=new Label{Text="Тестовые пользователи: admin/admin123, spec/spec123, view/view123",Left=35,Top=290,Width=360,Height=35,ForeColor=UiTheme.Secondary}; Controls.AddRange(new Control[]{title,sub,p,hint}); b.Click+=(_,__)=>DoLogin(); ex.Click+=(_,__)=>Close(); AcceptButton=b; }
+ void DoLogin(){ try{ var u=AuthService.Login(txtLogin.Text,txtPassword.Text); if(u==null){ MessageHelper.Error("Неверный логин или пароль"); return;} AuditService.Write(u,"login","users",u.Id,"Вход в систему"); Hide(); using var m=new MainForm(u); m.ShowDialog(); Show(); txtPassword.Clear(); } catch(Exception ex){ MessageHelper.Error("Ошибка входа: "+ex.Message); } }
 }

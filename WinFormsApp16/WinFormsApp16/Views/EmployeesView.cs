@@ -7,139 +7,97 @@ namespace CertDesk.Views;
 
 public partial class EmployeesView : UserControl
 {
-    private readonly CurrentUser _user;
-    private readonly DataGridView _grid = new();
-    private readonly TextBox _searchBox = new();
-    private readonly ComboBox _statusFilter = new();
-    private readonly Button _addButton = new();
-    private readonly Button _editButton = new();
-    private readonly Button _archiveButton = new();
-    private readonly Button _refreshButton = new();
+    private readonly CurrentUser u;
+    private readonly DataGridView grid = new();
+    private readonly TextBox q = new();
+    private readonly ComboBox st = new();
 
     public EmployeesView(CurrentUser user)
     {
-        _user = user;
+        u = user;
         InitializeComponent();
         Build();
         LoadData();
     }
 
-    private int SelectedId => _grid.CurrentRow == null ? 0 : Convert.ToInt32(_grid.CurrentRow.Cells["ID"].Value);
+    private int Id => grid.CurrentRow == null ? 0 : Convert.ToInt32(grid.CurrentRow.Cells["ID"].Value);
 
     private void Build()
     {
         BackColor = UiTheme.Light;
 
-        TableLayoutPanel layout = CreateLayout("Сотрудники");
-        Panel filterPanel = CreateFilterPanel();
-        Panel gridCard = CreateGridCard();
-        layout.Controls.Add(filterPanel, 0, 1);
-        layout.Controls.Add(gridCard, 0, 2);
-        Controls.Add(layout);
+        Button add = B("Добавить");
+        Button edit = B("Изменить");
+        Button arc = B("Архивировать");
+        Button refb = B("Обновить");
 
-        AddField(filterPanel, "Поиск", _searchBox, 0, 18, 230);
-        AddField(filterPanel, "Статус", _statusFilter, 250, 18, 140);
-        _statusFilter.Items.AddRange(new object[] { "Все", "Активные", "Архивные" });
-        _statusFilter.SelectedIndex = 0;
+        q.SetBounds(15, 15, 180, 25);
+        st.SetBounds(205, 15, 120, 25);
+        st.Items.AddRange(new object[] { "Все", "Активные", "Архивные" });
+        st.SelectedIndex = 0;
 
-        ConfigureButton(_addButton, "Добавить", UiTheme.ApplyButtonStyle);
-        ConfigureButton(_editButton, "Изменить", UiTheme.ApplySecondaryButtonStyle);
-        ConfigureButton(_archiveButton, "Архивировать", UiTheme.ApplyDangerButtonStyle);
-        ConfigureButton(_refreshButton, "Обновить", UiTheme.ApplySecondaryButtonStyle);
-        AddButtons(filterPanel, 420, _addButton, _editButton, _archiveButton, _refreshButton);
+        Flow(add, edit, arc, refb);
 
-        _grid.Dock = DockStyle.Fill;
-        UiTheme.ApplyGridStyle(_grid);
-        gridCard.Controls.Add(_grid);
+        grid.SetBounds(15, 60, 900, 560);
+        grid.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
+        UiTheme.ApplyGridStyle(grid);
 
-        _searchBox.TextChanged += (_, _) => LoadData();
-        _statusFilter.SelectedIndexChanged += (_, _) => LoadData();
-        _refreshButton.Click += (_, _) => LoadData();
-        _addButton.Click += (_, _) => Save(new EmployeeEditForm(), false);
-        _editButton.Click += (_, _) =>
+        Controls.AddRange(new Control[] { q, st, add, edit, arc, refb, grid });
+
+        q.TextChanged += (_, __) => LoadData();
+        st.SelectedIndexChanged += (_, __) => LoadData();
+        refb.Click += (_, __) => LoadData();
+        add.Click += (_, __) => Save(new EmployeeEditForm(), false);
+        edit.Click += (_, __) =>
         {
-            Employee? employee = EmployeeService.GetById(SelectedId);
-            if (employee != null) Save(new EmployeeEditForm(employee), true);
+            Employee? e = EmployeeService.GetById(Id);
+            if (e != null)
+                Save(new EmployeeEditForm(e), true);
         };
-        _archiveButton.Click += (_, _) =>
+        arc.Click += (_, __) =>
         {
-            if (SelectedId > 0 && MessageHelper.Confirm("Архивировать сотрудника?"))
+            if (Id > 0 && MessageHelper.Confirm("Архивировать сотрудника?"))
             {
-                EmployeeService.Archive(SelectedId, _user);
+                EmployeeService.Archive(Id, u);
                 LoadData();
             }
         };
 
-        if (!RoleGuard.CanEdit(_user))
+        if (!RoleGuard.CanEdit(u))
         {
-            _addButton.Enabled = false;
-            _editButton.Enabled = false;
-            _archiveButton.Enabled = false;
+            add.Enabled = false;
+            edit.Enabled = false;
+            arc.Enabled = false;
         }
     }
 
-    private static TableLayoutPanel CreateLayout(string titleText)
+    private static Button B(string t)
     {
-        TableLayoutPanel layout = new() { Dock = DockStyle.Fill, BackColor = UiTheme.Light, RowCount = 3, ColumnCount = 1 };
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        Label title = new() { Text = titleText, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
-        UiTheme.ApplyLabelTitleStyle(title);
-        layout.Controls.Add(title, 0, 0);
-        return layout;
+        Button b = new() { Text = t, Top = 13, Width = 110 };
+        UiTheme.ApplyButtonStyle(b);
+        return b;
     }
 
-    private static Panel CreateFilterPanel()
+    private static void Flow(params Button[] bs)
     {
-        Panel panel = new() { Dock = DockStyle.Fill, Margin = new Padding(0, 0, 0, 14) };
-        UiTheme.ApplyCardStyle(panel);
-        return panel;
+        int x = 335;
+        foreach (Button b in bs)
+        {
+            b.Left = x;
+            x += 118;
+        }
     }
 
-    private static Panel CreateGridCard()
-    {
-        Panel panel = new() { Dock = DockStyle.Fill };
-        UiTheme.ApplyCardStyle(panel);
-        return panel;
-    }
-
-    private static void AddField(Panel panel, string labelText, Control control, int left, int top, int width)
-    {
-        Label label = new() { Text = labelText, Left = left, Top = 8 };
-        UiTheme.ApplyLabelMutedStyle(label);
-        control.Left = left;
-        control.Top = top + 18;
-        control.Width = width;
-        if (control is TextBox textBox) UiTheme.ApplyTextBoxStyle(textBox);
-        if (control is ComboBox comboBox) UiTheme.ApplyComboBoxStyle(comboBox);
-        panel.Controls.Add(label);
-        panel.Controls.Add(control);
-    }
-
-    private static void ConfigureButton(Button button, string text, Action<Button> style)
-    {
-        button.Text = text;
-        button.Width = 112;
-        button.Height = 36;
-        style(button);
-    }
-
-    private static void AddButtons(Panel panel, int left, params Button[] buttons)
-    {
-        FlowLayoutPanel flow = new() { Left = left, Top = 26, Height = 42, Width = 520, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right, WrapContents = false };
-        foreach (Button button in buttons) flow.Controls.Add(button);
-        panel.Controls.Add(flow);
-    }
-
-    private void Save(EmployeeEditForm form, bool edit)
+    private void Save(EmployeeEditForm f, bool edit)
     {
         try
         {
-            if (form.ShowDialog() == DialogResult.OK)
+            if (f.ShowDialog() == DialogResult.OK)
             {
-                if (edit) EmployeeService.Update(form.Employee, _user);
-                else EmployeeService.Create(form.Employee, _user);
+                if (edit)
+                    EmployeeService.Update(f.Employee, u);
+                else
+                    EmployeeService.Create(f.Employee, u);
                 LoadData();
             }
         }
@@ -149,5 +107,8 @@ public partial class EmployeesView : UserControl
         }
     }
 
-    private void LoadData() => _grid.DataSource = EmployeeService.Search(_searchBox.Text, _statusFilter.Text);
+    private void LoadData()
+    {
+        grid.DataSource = EmployeeService.Search(q.Text, st.Text);
+    }
 }

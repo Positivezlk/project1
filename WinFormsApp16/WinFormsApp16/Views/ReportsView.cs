@@ -7,18 +7,15 @@ namespace CertDesk.Views;
 
 public partial class ReportsView : UserControl
 {
-    private readonly CurrentUser _user;
-    private readonly ComboBox _reportType = new() { Width = 430, DropDownStyle = ComboBoxStyle.DropDownList };
-    private readonly DateTimePicker _periodFrom = new();
-    private readonly DateTimePicker _periodTo = new();
-    private readonly Label _lastSavedFileLabel = new() { AutoSize = false, Width = 720, Height = 45 };
-    private readonly Button _csvButton = new();
-    private readonly Button _xlsxButton = new();
-    private readonly Button _openFolderButton = new();
+    private readonly CurrentUser u;
+    private readonly ComboBox type = new() { Width = 360, DropDownStyle = ComboBoxStyle.DropDownList };
+    private readonly DateTimePicker from = new();
+    private readonly DateTimePicker to = new();
+    private readonly Label last = new() { AutoSize = true, Top = 170, Left = 20, Width = 800 };
 
     public ReportsView(CurrentUser user)
     {
-        _user = user;
+        u = user;
         InitializeComponent();
         Build();
     }
@@ -27,88 +24,56 @@ public partial class ReportsView : UserControl
     {
         BackColor = UiTheme.Light;
 
-        TableLayoutPanel layout = new() { Dock = DockStyle.Fill, BackColor = UiTheme.Light, RowCount = 2, ColumnCount = 1 };
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        Label title = new() { Text = "Отчеты", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
-        UiTheme.ApplyLabelTitleStyle(title);
-        layout.Controls.Add(title, 0, 0);
-
-        Panel card = new() { Dock = DockStyle.Top, Height = 245, Margin = new Padding(0, 0, 0, 14) };
-        UiTheme.ApplyCardStyle(card);
-        layout.Controls.Add(card, 0, 1);
-        Controls.Add(layout);
-
-        Label description = new() { Text = "Выберите тип отчета и формат выгрузки", Left = 0, Top = 0 };
-        UiTheme.ApplyLabelMutedStyle(description);
-        card.Controls.Add(description);
-
-        AddLabel(card, "Тип отчета", 0, 42);
-        _reportType.Left = 0;
-        _reportType.Top = 62;
-        UiTheme.ApplyComboBoxStyle(_reportType);
-        card.Controls.Add(_reportType);
-
-        AddLabel(card, "Период с", 0, 104);
-        _periodFrom.Left = 0;
-        _periodFrom.Top = 124;
-        UiTheme.ApplyDatePickerStyle(_periodFrom);
-        card.Controls.Add(_periodFrom);
-
-        AddLabel(card, "по", 230, 104);
-        _periodTo.Left = 230;
-        _periodTo.Top = 124;
-        UiTheme.ApplyDatePickerStyle(_periodTo);
-        card.Controls.Add(_periodTo);
-        _periodFrom.Value = DateTime.Today.AddMonths(-1);
-
-        foreach (string report in ReportService.ReportTypes)
+        Controls.AddRange(new Control[]
         {
-            _reportType.Items.Add(report);
-        }
-        _reportType.SelectedIndex = 0;
+            new Label { Text = "Тип отчета", Left = 20, Top = 25 },
+            type,
+            new Label { Text = "Период с", Left = 20, Top = 70 },
+            from,
+            new Label { Text = "по", Left = 310, Top = 70 },
+            to,
+            last
+        });
 
-        ConfigureButton(_csvButton, "Экспорт CSV", 0, 170, 130, UiTheme.ApplyButtonStyle);
-        ConfigureButton(_xlsxButton, "Экспорт XLSX", 145, 170, 135, UiTheme.ApplyButtonStyle);
-        ConfigureButton(_openFolderButton, "Открыть папку отчетов", 295, 170, 190, UiTheme.ApplySecondaryButtonStyle);
-        card.Controls.AddRange(new Control[] { _csvButton, _xlsxButton, _openFolderButton });
+        type.Left = 130;
+        type.Top = 20;
+        from.Left = 130;
+        from.Top = 65;
+        to.Left = 340;
+        to.Top = 65;
+        from.Value = DateTime.Today.AddMonths(-1);
 
-        _lastSavedFileLabel.Left = 0;
-        _lastSavedFileLabel.Top = 212;
-        _lastSavedFileLabel.ForeColor = UiTheme.Secondary;
-        _lastSavedFileLabel.Text = "Последний файл: не сформирован";
-        card.Controls.Add(_lastSavedFileLabel);
+        foreach (string r in ReportService.ReportTypes)
+            type.Items.Add(r);
+        type.SelectedIndex = 0;
 
-        _csvButton.Click += (_, _) => Export(false);
-        _xlsxButton.Click += (_, _) => Export(true);
-        _openFolderButton.Click += (_, _) => Process.Start(new ProcessStartInfo { FileName = ReportService.OutputDirectory, UseShellExecute = true });
+        Button csv = B("Экспорт CSV", 20, 115);
+        Button xlsx = B("Экспорт XLSX", 150, 115);
+        Button open = B("Открыть папку отчетов", 285, 115);
+
+        Controls.AddRange(new Control[] { csv, xlsx, open });
+
+        csv.Click += (_, __) => Export(false);
+        xlsx.Click += (_, __) => Export(true);
+        open.Click += (_, __) => Process.Start(new ProcessStartInfo { FileName = ReportService.OutputDirectory, UseShellExecute = true });
     }
 
-    private static void AddLabel(Control parent, string text, int left, int top)
+    private static Button B(string t, int x, int y)
     {
-        Label label = new() { Text = text, Left = left, Top = top };
-        UiTheme.ApplyLabelMutedStyle(label);
-        parent.Controls.Add(label);
+        Button b = new() { Text = t, Left = x, Top = y, Width = 120 };
+        UiTheme.ApplyButtonStyle(b);
+        return b;
     }
 
-    private static void ConfigureButton(Button button, string text, int left, int top, int width, Action<Button> style)
-    {
-        button.Text = text;
-        button.Left = left;
-        button.Top = top;
-        button.Width = width;
-        style(button);
-    }
-
-    private void Export(bool xlsx)
+    private void Export(bool x)
     {
         try
         {
-            string path = xlsx
-                ? ReportService.ExportXlsx(_reportType.Text, _periodFrom.Value, _periodTo.Value, _user)
-                : ReportService.ExportCsv(_reportType.Text, _periodFrom.Value, _periodTo.Value, _user);
-            _lastSavedFileLabel.Text = "Последний файл: " + path;
-            MessageHelper.Info("Отчет сохранен:\n" + path);
+            string p = x
+                ? ReportService.ExportXlsx(type.Text, from.Value, to.Value, u)
+                : ReportService.ExportCsv(type.Text, from.Value, to.Value, u);
+            last.Text = "Последний файл: " + p;
+            MessageHelper.Info("Отчет сохранен:\n" + p);
         }
         catch (Exception ex)
         {

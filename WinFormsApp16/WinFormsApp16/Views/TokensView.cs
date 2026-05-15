@@ -7,173 +7,127 @@ namespace CertDesk.Views;
 
 public partial class TokensView : UserControl
 {
-    private readonly CurrentUser _user;
-    private readonly DataGridView _grid = new();
-    private readonly TextBox _searchBox = new();
-    private readonly ComboBox _statusFilter = new();
-    private readonly Button _addButton = new();
-    private readonly Button _editButton = new();
-    private readonly Button _issueButton = new();
-    private readonly Button _returnButton = new();
-    private readonly Button _damagedButton = new();
-    private readonly Button _writeOffButton = new();
-    private readonly Button _refreshButton = new();
+    private readonly CurrentUser u;
+    private readonly DataGridView grid = new();
+    private readonly TextBox q = new();
+    private readonly ComboBox st = new();
 
     public TokensView(CurrentUser user)
     {
-        _user = user;
+        u = user;
         InitializeComponent();
         Build();
         LoadData();
     }
 
-    private int SelectedId => _grid.CurrentRow == null ? 0 : Convert.ToInt32(_grid.CurrentRow.Cells["ID"].Value);
+    private int Id => grid.CurrentRow == null ? 0 : Convert.ToInt32(grid.CurrentRow.Cells["ID"].Value);
 
     private void Build()
     {
         BackColor = UiTheme.Light;
 
-        TableLayoutPanel layout = CreateLayout("Реестр носителей ключевой информации");
-        Panel filterPanel = CreateFilterPanel();
-        Panel gridCard = CreateGridCard();
-        layout.Controls.Add(filterPanel, 0, 1);
-        layout.Controls.Add(gridCard, 0, 2);
-        Controls.Add(layout);
+        q.SetBounds(15, 15, 160, 25);
+        st.SetBounds(185, 15, 120, 25);
+        st.Items.AddRange(new object[] { "Все", "storage", "issued", "damaged", "written_off" });
+        st.SelectedIndex = 0;
 
-        AddField(filterPanel, "Поиск", _searchBox, 0, 18, 190);
-        AddField(filterPanel, "Статус", _statusFilter, 210, 18, 140);
-        _statusFilter.Items.AddRange(new object[] { "Все", "storage", "issued", "damaged", "written_off" });
-        _statusFilter.SelectedIndex = 0;
+        Button add = B("Добавить");
+        Button edit = B("Изменить");
+        Button iss = B("Выдать");
+        Button ret = B("Вернуть");
+        Button dam = B("Поврежден");
+        Button wo = B("Списать");
+        Button refb = B("Обновить");
 
-        ConfigureButton(_addButton, "Добавить", UiTheme.ApplySecondaryButtonStyle);
-        ConfigureButton(_editButton, "Изменить", UiTheme.ApplySecondaryButtonStyle);
-        ConfigureButton(_issueButton, "Выдать", UiTheme.ApplyButtonStyle);
-        ConfigureButton(_returnButton, "Вернуть", UiTheme.ApplySecondaryButtonStyle);
-        ConfigureButton(_damagedButton, "Поврежден", UiTheme.ApplyDangerButtonStyle);
-        ConfigureButton(_writeOffButton, "Списать", UiTheme.ApplyDangerButtonStyle);
-        ConfigureButton(_refreshButton, "Обновить", UiTheme.ApplySecondaryButtonStyle);
-        AddButtons(filterPanel, 380, _addButton, _editButton, _issueButton, _returnButton, _damagedButton, _writeOffButton, _refreshButton);
+        Flow(315, add, edit, iss, ret, dam, wo, refb);
 
-        _grid.Dock = DockStyle.Fill;
-        UiTheme.ApplyGridStyle(_grid);
-        gridCard.Controls.Add(_grid);
+        grid.SetBounds(15, 60, 1000, 560);
+        grid.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
+        UiTheme.ApplyGridStyle(grid);
 
-        _searchBox.TextChanged += (_, _) => LoadData();
-        _statusFilter.SelectedIndexChanged += (_, _) => LoadData();
-        _refreshButton.Click += (_, _) => LoadData();
-        _addButton.Click += (_, _) => Save(new TokenEditForm(), false);
-        _editButton.Click += (_, _) =>
+        Controls.AddRange(new Control[] { q, st, add, edit, iss, ret, dam, wo, refb, grid });
+
+        q.TextChanged += (_, __) => LoadData();
+        st.SelectedIndexChanged += (_, __) => LoadData();
+        refb.Click += (_, __) => LoadData();
+        add.Click += (_, __) => Save(new TokenEditForm(), false);
+        edit.Click += (_, __) =>
         {
-            TokenDevice? token = TokenService.GetById(SelectedId);
-            if (token != null) Save(new TokenEditForm(token), true);
+            TokenDevice? t = TokenService.GetById(Id);
+            if (t != null)
+                Save(new TokenEditForm(t), true);
         };
-        _issueButton.Click += (_, _) =>
+        iss.Click += (_, __) =>
         {
-            using TokenIssueForm form = new();
-            if (SelectedId > 0 && form.ShowDialog() == DialogResult.OK)
+            using TokenIssueForm f = new();
+            if (Id > 0 && f.ShowDialog() == DialogResult.OK)
             {
-                TokenService.Issue(SelectedId, form.EmployeeId, form.ActNumber, form.Comment, _user);
+                TokenService.Issue(Id, f.EmployeeId, f.ActNumber, f.Comment, u);
                 LoadData();
             }
         };
-        _returnButton.Click += (_, _) =>
+        ret.Click += (_, __) =>
         {
-            if (SelectedId > 0 && MessageHelper.Confirm("Вернуть токен?"))
+            if (Id > 0 && MessageHelper.Confirm("Вернуть токен?"))
             {
-                TokenService.Return(SelectedId, _user);
+                TokenService.Return(Id, u);
                 LoadData();
             }
         };
-        _damagedButton.Click += (_, _) =>
+        dam.Click += (_, __) =>
         {
-            if (SelectedId > 0 && MessageHelper.Confirm("Отметить токен поврежденным?"))
+            if (Id > 0 && MessageHelper.Confirm("Отметить токен поврежденным?"))
             {
-                TokenService.MarkDamaged(SelectedId, _user);
+                TokenService.MarkDamaged(Id, u);
                 LoadData();
             }
         };
-        _writeOffButton.Click += (_, _) =>
+        wo.Click += (_, __) =>
         {
-            if (SelectedId > 0 && MessageHelper.Confirm("Списать токен?"))
+            if (Id > 0 && MessageHelper.Confirm("Списать токен?"))
             {
-                TokenService.WriteOff(SelectedId, _user);
+                TokenService.WriteOff(Id, u);
                 LoadData();
             }
         };
 
-        if (!RoleGuard.CanManageTokens(_user))
+        if (!RoleGuard.CanManageTokens(u))
         {
-            _addButton.Enabled = false;
-            _editButton.Enabled = false;
-            _issueButton.Enabled = false;
-            _returnButton.Enabled = false;
-            _damagedButton.Enabled = false;
-            _writeOffButton.Enabled = false;
+            add.Enabled = false;
+            edit.Enabled = false;
+            iss.Enabled = false;
+            ret.Enabled = false;
+            dam.Enabled = false;
+            wo.Enabled = false;
         }
     }
 
-    private static TableLayoutPanel CreateLayout(string titleText)
+    private static Button B(string t)
     {
-        TableLayoutPanel layout = new() { Dock = DockStyle.Fill, BackColor = UiTheme.Light, RowCount = 3, ColumnCount = 1 };
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        Label title = new() { Text = titleText, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
-        UiTheme.ApplyLabelTitleStyle(title);
-        layout.Controls.Add(title, 0, 0);
-        return layout;
+        Button b = new() { Text = t, Top = 13, Width = 95 };
+        UiTheme.ApplyButtonStyle(b);
+        return b;
     }
 
-    private static Panel CreateFilterPanel()
+    private static void Flow(int x, params Button[] bs)
     {
-        Panel panel = new() { Dock = DockStyle.Fill, Margin = new Padding(0, 0, 0, 14) };
-        UiTheme.ApplyCardStyle(panel);
-        return panel;
+        foreach (Button b in bs)
+        {
+            b.Left = x;
+            x += 101;
+        }
     }
 
-    private static Panel CreateGridCard()
-    {
-        Panel panel = new() { Dock = DockStyle.Fill };
-        UiTheme.ApplyCardStyle(panel);
-        return panel;
-    }
-
-    private static void AddField(Panel panel, string labelText, Control control, int left, int top, int width)
-    {
-        Label label = new() { Text = labelText, Left = left, Top = 8 };
-        UiTheme.ApplyLabelMutedStyle(label);
-        control.Left = left;
-        control.Top = top + 18;
-        control.Width = width;
-        if (control is TextBox textBox) UiTheme.ApplyTextBoxStyle(textBox);
-        if (control is ComboBox comboBox) UiTheme.ApplyComboBoxStyle(comboBox);
-        panel.Controls.Add(label);
-        panel.Controls.Add(control);
-    }
-
-    private static void ConfigureButton(Button button, string text, Action<Button> style)
-    {
-        button.Text = text;
-        button.Width = 98;
-        button.Height = 36;
-        style(button);
-    }
-
-    private static void AddButtons(Panel panel, int left, params Button[] buttons)
-    {
-        FlowLayoutPanel flow = new() { Left = left, Top = 26, Height = 42, Width = 730, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right, WrapContents = false };
-        foreach (Button button in buttons) flow.Controls.Add(button);
-        panel.Controls.Add(flow);
-    }
-
-    private void Save(TokenEditForm form, bool edit)
+    private void Save(TokenEditForm f, bool edit)
     {
         try
         {
-            if (form.ShowDialog() == DialogResult.OK)
+            if (f.ShowDialog() == DialogResult.OK)
             {
-                if (edit) TokenService.Update(form.Token, _user);
-                else TokenService.Create(form.Token, _user);
+                if (edit)
+                    TokenService.Update(f.Token, u);
+                else
+                    TokenService.Create(f.Token, u);
                 LoadData();
             }
         }
@@ -183,5 +137,8 @@ public partial class TokensView : UserControl
         }
     }
 
-    private void LoadData() => _grid.DataSource = TokenService.Search(_searchBox.Text, _statusFilter.Text);
+    private void LoadData()
+    {
+        grid.DataSource = TokenService.Search(q.Text, st.Text);
+    }
 }
