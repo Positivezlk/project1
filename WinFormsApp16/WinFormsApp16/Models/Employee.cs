@@ -1,0 +1,2 @@
+namespace CertDesk.Models;
+public sealed class Employee { public int Id { get; set; } public string FullName { get; set; }=""; public string Position { get; set; }=""; public string? Department { get; set; } public string? Email { get; set; } public string? Phone { get; set; } public string? Snils { get; set; } public string? Inn { get; set; } public bool IsActive { get; set; } = true; public override string ToString() => FullName; }
