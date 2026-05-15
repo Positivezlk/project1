@@ -1,0 +1,2 @@
+namespace CertDesk.Forms;
+public partial class MainForm { private System.ComponentModel.IContainer? components=null; protected override void Dispose(bool disposing){ if(disposing) components?.Dispose(); base.Dispose(disposing);} private void InitializeComponent(){ SuspendLayout(); AutoScaleDimensions=new SizeF(7F,15F); AutoScaleMode=AutoScaleMode.Font; ClientSize=new Size(1200,750); MinimumSize=new Size(1000,650); Name="MainForm"; StartPosition=FormStartPosition.CenterScreen; Text="CertDesk — учет сертификатов ЭП и МЧД"; ResumeLayout(false);} }
