@@ -1,0 +1,2 @@
+namespace CertDesk.Common;
+public static class MessageHelper { public static void Info(string t)=>MessageBox.Show(t,"CertDesk",MessageBoxButtons.OK,MessageBoxIcon.Information); public static void Error(string t)=>MessageBox.Show(t,"CertDesk",MessageBoxButtons.OK,MessageBoxIcon.Error); public static bool Confirm(string t)=>MessageBox.Show(t,"CertDesk",MessageBoxButtons.YesNo,MessageBoxIcon.Question)==DialogResult.Yes; }
