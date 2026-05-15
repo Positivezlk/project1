@@ -1,0 +1,12 @@
+using CertDesk.Common; using CertDesk.Models; using CertDesk.Services; using CertDesk.Views;
+namespace CertDesk.Forms;
+public partial class MainForm:Form
+{
+ readonly CurrentUser _user; readonly Panel _menu=new(){Dock=DockStyle.Left,Width=220,BackColor=UiTheme.Primary}; readonly Panel _content=new(){Dock=DockStyle.Fill,BackColor=UiTheme.Light}; readonly StatusStrip _status=new();
+ public MainForm(CurrentUser user){ _user=user; InitializeComponent(); Build(); ShowView(new DashboardView(_user)); }
+ void Build(){ var header=new Panel{Dock=DockStyle.Top,Height=56,BackColor=Color.White}; header.Controls.Add(new Label{Text="CertDesk",Font=new Font("Segoe UI",18,FontStyle.Bold),ForeColor=UiTheme.Primary,Left=18,Top=12,AutoSize=true}); header.Controls.Add(new Label{Text=$"{_user.Login} • {_user.RoleTitle}",Anchor=AnchorStyles.Top|AnchorStyles.Right,Left=900,Top=20,Width=260,TextAlign=ContentAlignment.TopRight,ForeColor=UiTheme.Secondary}); _status.Items.Add("Готово"); Controls.AddRange(new Control[]{_content,_menu,header,_status}); AddBtn("Главная",()=>ShowView(new DashboardView(_user))); AddBtn("Сертификаты",()=>ShowView(new CertificatesView(_user))); AddBtn("МЧД",()=>ShowView(new MchdView(_user))); AddBtn("Токены",()=>ShowView(new TokensView(_user))); AddBtn("Сотрудники",()=>ShowView(new EmployeesView(_user))); if(RoleGuard.CanExport(_user)) AddBtn("Отчеты",()=>ShowView(new ReportsView(_user))); if(RoleGuard.CanViewAudit(_user)) AddBtn("Аудит",()=>ShowView(new AuditView(_user))); if(RoleGuard.CanBackup(_user)) AddBtn("Резервная копия",Backup); AddBtn("Выход",Logout); }
+ void AddBtn(string text,Action click){ var b=new Button{Text=text,Dock=DockStyle.Top,Height=46,FlatStyle=FlatStyle.Flat,ForeColor=Color.White,BackColor=UiTheme.Primary,TextAlign=ContentAlignment.MiddleLeft,Padding=new Padding(18,0,0,0)}; b.FlatAppearance.BorderSize=0; b.FlatAppearance.MouseOverBackColor=UiTheme.PrimaryDark; b.Click+=(_,__)=>click(); _menu.Controls.Add(b); _menu.Controls.SetChildIndex(b,_menu.Controls.Count-1); }
+ void ShowView(UserControl v){ _content.Controls.Clear(); v.Dock=DockStyle.Fill; _content.Controls.Add(v); _status.Items[0].Text="Открыт раздел: "+v.Name; }
+ void Backup(){ try{ var p=BackupService.CreateBackup(_user); MessageHelper.Info("Резервная копия создана:\n"+p);} catch(Exception ex){ MessageHelper.Error(ex.Message);} }
+ void Logout(){ AuditService.Write(_user,"logout","users",_user.Id,"Выход из системы"); Close(); }
+}
